@@ -66,6 +66,12 @@ async def tabela(ctx):
         mensagem += f"TOTAL = {total}\n"
 
     await ctx.send(mensagem)
+    @bot.command()
+@commands.has_permissions(administrator=True)
+async def reset(ctx):
+    save_data({})
+    await ctx.send("🗑️ Todos os dados foram resetados com sucesso!")
+
 
 bot.run(os.getenv("TOKEN"))
 
