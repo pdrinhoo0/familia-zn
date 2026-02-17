@@ -30,7 +30,7 @@ async def on_ready():
 # 🔹 ADICIONAR ITEM
 @bot.command()
 async def add(ctx, item: str, quantidade: int):
-    user = str(ctx.author)
+    user = ctx.author.name  # 👈 agora pega só o nome
     data = load_data()
 
     item = item.lower()
@@ -45,12 +45,12 @@ async def add(ctx, item: str, quantidade: int):
 
     save_data(data)
 
-    await ctx.send(f"✅ {quantidade} adicionados em {item} para {user}")
+    await ctx.send(f"✅ {quantidade} adicionados em {item}")
 
 # 🔹 RETIRAR ITEM
 @bot.command()
 async def retirar(ctx, item: str, quantidade: int):
-    user = str(ctx.author)
+    user = ctx.author.name  # 👈 só nome
     data = load_data()
 
     item = item.lower()
@@ -75,29 +75,40 @@ async def retirar(ctx, item: str, quantidade: int):
 
     save_data(data)
 
-    await ctx.send(f"➖ {quantidade} retirados de {item} para {user}")
+    await ctx.send(f"➖ {quantidade} retirados de {item}")
 
-# 🔹 MOSTRAR TABELA
+# 🔹 MOSTRAR TABELA BONITA
 @bot.command()
 async def tabela(ctx):
     data = load_data()
 
-    if not data:
+    if not data or len(data) == 0:
         await ctx.send("📭 Nenhum dado registrado ainda.")
         return
 
     mensagem = ""
 
-    for item, users in data.items():
-        total = sum(users.values())
-        mensagem += f"\n📦 {item.upper()}\n"
+    for item in data:
+        users = data[item]
 
-        for user, qtd in users.items():
-            mensagem += f"{user} = {qtd}\n"
+        if not users:
+            continue
 
-        mensagem += f"TOTAL = {total}\n"
+        total = 0
 
-    await ctx.send(mensagem)
+        mensagem += "━━━━━━━━━━━━━━━━━━\n"
+        mensagem += f"📦 {item.upper()}\n"
+        mensagem += "━━━━━━━━━━━━━━━━━━\n"
+
+        for user in users:
+            qtd = users[user]
+            total += qtd
+            mensagem += f"{user:<12} {qtd}\n"
+
+        mensagem += "━━━━━━━━━━━━━━━━━━\n"
+        mensagem += f"{'TOTAL':<12} {total}\n\n"
+
+    await ctx.send(f"```{mensagem}```")
 
 # 🔹 RESETAR TUDO (admin)
 @bot.command()
