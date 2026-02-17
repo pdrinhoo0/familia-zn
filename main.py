@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import os
 import json
+import shutil
+from datetime import datetime
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -9,17 +11,46 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 DATA_FILE = "dados.json"
+BACKUP_FOLDER = "backups"
+MAX_BACKUPS = 5
 
-# Criar arquivo se não existir
+CANAL_BACKUP_ID = 1473419060908789821  # ✅ ID DO SEU CANAL
+
+if not os.path.exists(BACKUP_FOLDER):
+    os.makedirs(BACKUP_FOLDER)
+
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w") as f:
         json.dump({}, f)
+
+async def criar_backup():
+    if not os.path.exists(DATA_FILE):
+        return
+
+    data_atual = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+    backup_nome = f"{BACKUP_FOLDER}/backup_{data_atual}.json"
+
+    shutil.copy(DATA_FILE, backup_nome)
+
+    # Enviar para canal do Discord
+    canal = bot.get_channel(CANAL_BACKUP_ID)
+    if canal:
+        await canal.send(
+            f"📦 Backup automático criado:",
+            file=discord.File(backup_nome)
+        )
+
+    # Manter apenas os últimos 5
+    backups = sorted(os.listdir(BACKUP_FOLDER))
+    if len(backups) > MAX_BACKUPS:
+        os.remove(os.path.join(BACKUP_FOLDER, backups[0]))
 
 def load_data():
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
-def save_data(data):
+async def save_data(data):
+    await criar_backup()  # 🔥 cria backup antes de salvar
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
@@ -30,7 +61,7 @@ async def on_ready():
 # 🔹 ADICIONAR ITEM
 @bot.command()
 async def add(ctx, item: str, quantidade: int):
-    user = ctx.author.name  # 👈 agora pega só o nome
+    user = ctx.author.name
     data = load_data()
 
     item = item.lower()
@@ -43,14 +74,14 @@ async def add(ctx, item: str, quantidade: int):
 
     data[item][user] += quantidade
 
-    save_data(data)
+    await save_data(data)
 
     await ctx.send(f"✅ {quantidade} adicionados em {item}")
 
 # 🔹 RETIRAR ITEM
 @bot.command()
 async def retirar(ctx, item: str, quantidade: int):
-    user = ctx.author.name  # 👈 só nome
+    user = ctx.author.name
     data = load_data()
 
     item = item.lower()
@@ -65,15 +96,13 @@ async def retirar(ctx, item: str, quantidade: int):
 
     data[item][user] -= quantidade
 
-    # Se ficar 0, remove o usuário daquele item
     if data[item][user] == 0:
         del data[item][user]
 
-    # Se nenhum usuário tiver mais o item, remove o item
     if not data[item]:
         del data[item]
 
-    save_data(data)
+    await save_data(data)
 
     await ctx.send(f"➖ {quantidade} retirados de {item}")
 
@@ -82,7 +111,7 @@ async def retirar(ctx, item: str, quantidade: int):
 async def tabela(ctx):
     data = load_data()
 
-    if not data or len(data) == 0:
+    if not data:
         await ctx.send("📭 Nenhum dado registrado ainda.")
         return
 
@@ -90,10 +119,6 @@ async def tabela(ctx):
 
     for item in data:
         users = data[item]
-
-        if not users:
-            continue
-
         total = 0
 
         mensagem += "━━━━━━━━━━━━━━━━━━\n"
@@ -114,7 +139,8 @@ async def tabela(ctx):
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def reset(ctx):
-    save_data({})
+    await criar_backup()
+    await save_data({})
     await ctx.send("🗑️ Todos os dados foram resetados com sucesso!")
 
 bot.run(os.getenv("TOKEN"))
