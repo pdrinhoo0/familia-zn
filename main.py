@@ -27,6 +27,7 @@ def save_data(data):
 async def on_ready():
     print(f"Bot conectado como {bot.user}")
 
+# Comando para adicionar itens
 @bot.command()
 async def add(ctx, item: str, quantidade: int):
     user = str(ctx.author)
@@ -46,6 +47,7 @@ async def add(ctx, item: str, quantidade: int):
 
     await ctx.send(f"✅ {quantidade} adicionados em {item} para {user}")
 
+# Comando para mostrar tabela
 @bot.command()
 async def tabela(ctx):
     data = load_data()
@@ -66,12 +68,12 @@ async def tabela(ctx):
         mensagem += f"TOTAL = {total}\n"
 
     await ctx.send(mensagem)
-    @bot.command()
+
+# Comando para resetar tudo (somente admins)
+@bot.command()
 @commands.has_permissions(administrator=True)
 async def reset(ctx):
     save_data({})
     await ctx.send("🗑️ Todos os dados foram resetados com sucesso!")
 
-
 bot.run(os.getenv("TOKEN"))
-
