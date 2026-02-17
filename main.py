@@ -27,7 +27,7 @@ def save_data(data):
 async def on_ready():
     print(f"Bot conectado como {bot.user}")
 
-# Comando para adicionar itens
+# 🔹 ADICIONAR ITEM
 @bot.command()
 async def add(ctx, item: str, quantidade: int):
     user = str(ctx.author)
@@ -47,7 +47,37 @@ async def add(ctx, item: str, quantidade: int):
 
     await ctx.send(f"✅ {quantidade} adicionados em {item} para {user}")
 
-# Comando para mostrar tabela
+# 🔹 RETIRAR ITEM
+@bot.command()
+async def retirar(ctx, item: str, quantidade: int):
+    user = str(ctx.author)
+    data = load_data()
+
+    item = item.lower()
+
+    if item not in data or user not in data[item]:
+        await ctx.send("❌ Você não possui esse item registrado.")
+        return
+
+    if data[item][user] < quantidade:
+        await ctx.send("❌ Você não tem essa quantidade para retirar.")
+        return
+
+    data[item][user] -= quantidade
+
+    # Se ficar 0, remove o usuário daquele item
+    if data[item][user] == 0:
+        del data[item][user]
+
+    # Se nenhum usuário tiver mais o item, remove o item
+    if not data[item]:
+        del data[item]
+
+    save_data(data)
+
+    await ctx.send(f"➖ {quantidade} retirados de {item} para {user}")
+
+# 🔹 MOSTRAR TABELA
 @bot.command()
 async def tabela(ctx):
     data = load_data()
@@ -69,7 +99,7 @@ async def tabela(ctx):
 
     await ctx.send(mensagem)
 
-# Comando para resetar tudo (somente admins)
+# 🔹 RESETAR TUDO (admin)
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def reset(ctx):
